@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ui-service-account
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ui-secrets
+type: Opaque
+data:
+  AUTH_PORT: "ODA4MA=="  # base64 encoded value for "8080"
+  WEATHER_PORT: "NTAwMA=="  # base64 encoded value for "5000"
+  REDIS_USER: "cmVkaXM="  # base64 encoded value for "redis"
+  REDIS_PASSWORD: "cmVkaXM="  # base64 encoded value for "redis"
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ui-config
+data:
+  AUTH_HOST: "auth-service"  #it was auth
+  WEATHER_HOST: "weather"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui-service
+spec:
+  selector:
+    app: ui
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: NodePort
+
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ui
+  template:
+    metadata:
+      labels:
+        app: ui
+    spec:
+      serviceAccountName: ui-service-account
+      containers:
+        - name: ui-container
+          image: devopseasylearning/banga-ui:v0.0.1
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - secretRef:
+                name: ui-secrets
+          envFrom:
+            - configMapRef:
+                name: ui-config
+      
